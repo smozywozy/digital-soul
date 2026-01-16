@@ -4,23 +4,22 @@ import { useState } from 'react';
 
 const CONTRACT_ADDRESS = '0x68fDEfeC02cB0a25cDf7a7943c4661BCC29c16f1';
 
-const ABI = [
-  {
-    "inputs": [
-      { "internalType": "string", "name": "tokenURI", "type": "string" }
-    ],
-    "name": "mintSoul",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-];
+const ABI_SIGNATURE = 'mintSoul(string)';
+
+function stringToHex(str: string) {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(str);
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 export default function Page() {
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatus] = useState('');
 
   const mintSoul = async () => {
-    if (!(window as any).ethereum) {
+    const ethereum = (window as any).ethereum;
+    if (!ethereum) {
       alert('Wallet not found');
       return;
     }
@@ -28,31 +27,35 @@ export default function Page() {
     try {
       setStatus('Waiting for wallet...');
 
-      const provider = (window as any).ethereum;
-      const accounts = await provider.request({ method: 'eth_requestAccounts' });
-      const from = accounts[0];
+      const [from] = await ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      const metadata = {
+        name: 'Digital Soul',
+        description: 'Your onchain digital soul',
+        attributes: [
+          { trait_type: 'Soul Archetype', value: 'Ethereal Mind' },
+          { trait_type: 'Birth Date', value: '1986-04-09' }
+        ]
+      };
 
       const tokenURI =
         'data:application/json,' +
-        encodeURIComponent(
-          JSON.stringify({
-            name: 'Digital Soul',
-            description: 'Your onchain digital soul',
-            attributes: [
-              { trait_type: 'Soul Archetype', value: 'Ethereal Mind' },
-              { trait_type: 'Birth Date', value: '1986-04-09' }
-            ]
-          })
-        );
+        encodeURIComponent(JSON.stringify(metadata));
+
+      const functionSelector = '0xbb02845d'; // keccak("mintSoul(string)") first 4 bytes
+      const encodedArg = stringToHex(tokenURI);
+      const lengthHex = tokenURI.length.toString(16).padStart(64, '0');
 
       const data =
-        '0xbb02845d' +
-        tokenURI.length.toString(16).padStart(64, '0') +
-        Buffer.from(tokenURI).toString('hex');
+        functionSelector +
+        lengthHex +
+        encodedArg.padEnd(Math.ceil(encodedArg.length / 64) * 64, '0');
 
       setStatus('Confirm transaction in wallet...');
 
-      await provider.request({
+      await ethereum.request({
         method: 'eth_sendTransaction',
         params: [
           {
@@ -64,8 +67,8 @@ export default function Page() {
       });
 
       setStatus('✨ Soul minted successfully!');
-    } catch (e: any) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       setStatus('❌ Mint cancelled or failed');
     }
   };
