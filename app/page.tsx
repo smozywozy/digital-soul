@@ -1,23 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  WagmiProvider,
-  createConfig,
-  useAccount,
-  useConnect,
-  useDisconnect,
-  useWriteContract,
-} from 'wagmi';
+import { useState } from 'react';
+import { createConfig, WagmiProvider, useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { base } from 'wagmi/chains';
+import { http } from 'viem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { writeContract } from 'wagmi/actions';
+
+const config = createConfig({
+  chains: [base],
+  connectors: [injected()],
+  transports: {
+    [base.id]: http(),
+  },
+});
+
+const queryClient = new QueryClient();
 
 const CONTRACT_ADDRESS = '0x68fDEfeC02cB0a25cDf7a7943c4661BCC29c16f1';
 
-const CONTRACT_ABI = [
+const ABI = [
   {
-    inputs: [{ name: 'tokenURI', type: 'string' }],
+    inputs: [{ internalType: 'string', name: 'tokenURI', type: 'string' }],
     name: 'mintSoul',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -25,123 +30,136 @@ const CONTRACT_ABI = [
   },
 ];
 
-const config = createConfig({
-  chains: [base],
-  connectors: [injected()],
-});
-
-const queryClient = new QueryClient();
-
-const SOULS = [
-  'Ethereal Mind',
-  'Solar Core',
-  'Lunar Echo',
-  'Void Walker',
-  'Neural Flame',
-  'Astral Weaver',
-  'Chrono Seed',
-  'Quantum Tide',
-  'Celestial Root',
-  'Digital Oracle',
-  'Stellar Nomad',
-  'Infinity Spark',
-];
-
-function getSoul(date: string) {
-  const seed = new Date(date).getTime();
-  return SOULS[seed % SOULS.length];
-}
-
 function DigitalSoulApp() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { writeContractAsync, isPending } = useWriteContract();
 
-  const [mounted, setMounted] = useState(false);
   const [birthDate, setBirthDate] = useState('');
-  const [soul, setSoul] = useState<string | null>(null);
-  const [minted, setMinted] = useState(false);
+  const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
-  const mint = async () => {
-    if (!soul || !address) return;
-
+  const buildTokenURI = () => {
     const metadata = {
       name: 'Digital Soul',
       description: 'Your onchain digital soul',
       attributes: [
-        { trait_type: 'Soul Archetype', value: soul },
-        { trait_type: 'Birth Date', value: birthDate },
+        {
+          trait_type: 'Soul Archetype',
+          value: 'Ethereal Mind',
+        },
+        {
+          trait_type: 'Birth Date',
+          value: birthDate,
+        },
       ],
     };
 
-    const encoded = `data:application/json,${encodeURIComponent(
+    return `data:application/json,${encodeURIComponent(
       JSON.stringify(metadata)
     )}`;
+  };
+
+  const mint = async () => {
+    if (!birthDate) {
+      alert('Select birth date');
+      return;
+    }
 
     try {
-      await writeContractAsync({
+      setStatus('Minting...');
+      await writeContract(config, {
         address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
+        abi: ABI,
         functionName: 'mintSoul',
-        args: [encoded],
+        args: [buildTokenURI()],
       });
-
-      setMinted(true);
+      setStatus('Minted successfully ✨');
     } catch (e) {
       console.error(e);
+      setStatus('Mint failed');
     }
   };
 
   return (
-    <main style={styles.main}>
-      <div style={styles.card}>
-        <h1>Digital Soul</h1>
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: '#0b0b0b',
+        color: '#fff',
+        fontFamily: 'Inter, sans-serif',
+      }}
+    >
+      <div
+        style={{
+          width: 400,
+          padding: 24,
+          borderRadius: 16,
+          background: '#111',
+          textAlign: 'center',
+        }}
+      >
+        <h1 style={{ fontSize: 28, marginBottom: 12 }}>Digital Soul</h1>
+        <p style={{ opacity: 0.7, marginBottom: 20 }}>
+          Reveal your onchain archetype
+        </p>
 
-        {!isConnected && (
-          <button style={styles.button} onClick={() => connect({ connector: injected() })}>
+        {!isConnected ? (
+          <button
+            onClick={() => connect({ connector: injected() })}
+            style={{
+              padding: '12px 20px',
+              borderRadius: 12,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 16,
+            }}
+          >
             Connect Wallet
           </button>
-        )}
-
-        {isConnected && (
+        ) : (
           <>
-            {!soul && (
-              <>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  style={styles.input}
-                />
-                <button
-                  style={styles.button}
-                  disabled={!birthDate}
-                  onClick={() => setSoul(getSoul(birthDate))}
-                >
-                  Reveal Soul
-                </button>
-              </>
-            )}
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 8,
+                border: 'none',
+                marginBottom: 12,
+              }}
+            />
 
-            {soul && !minted && (
-              <>
-                <h2>{soul}</h2>
-                <button style={styles.button} onClick={mint} disabled={isPending}>
-                  {isPending ? 'Minting...' : 'Mint Soul NFT'}
-                </button>
-              </>
-            )}
+            <button
+              onClick={mint}
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 12,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 16,
+              }}
+            >
+              Mint Digital Soul
+            </button>
 
-            {minted && <p>✨ Soul successfully minted</p>}
+            <p style={{ marginTop: 12, fontSize: 14 }}>{status}</p>
 
-            <button style={styles.link} onClick={() => disconnect()}>
+            <button
+              onClick={() => disconnect()}
+              style={{
+                marginTop: 12,
+                background: 'transparent',
+                color: '#888',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
               Disconnect
             </button>
           </>
@@ -160,43 +178,3 @@ export default function Page() {
     </QueryClientProvider>
   );
 }
-
-const styles: any = {
-  main: {
-    minHeight: '100vh',
-    background: '#0b0b12',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: '#fff',
-  },
-  card: {
-    width: 380,
-    padding: 24,
-    borderRadius: 18,
-    background: '#15151d',
-    textAlign: 'center',
-  },
-  input: {
-    width: '100%',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  button: {
-    width: '100%',
-    padding: 12,
-    borderRadius: 10,
-    background: '#6c5ce7',
-    border: 'none',
-    color: '#fff',
-    fontWeight: 600,
-    marginBottom: 10,
-  },
-  link: {
-    background: 'none',
-    border: 'none',
-    color: '#aaa',
-    marginTop: 10,
-  },
-};
