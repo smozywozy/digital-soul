@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const CONTRACT_ADDRESS = '0x68fDEfeC02cB0a25cDf7a7943c4661BCC29c16f1';
+const CONTRACT_ADDRESS = '0x0e726e4B5d97f1D48B0dCAde6f47eB2b2c449007';
 
 const ABI_SIGNATURE = 'mintSoul(string)';
 
