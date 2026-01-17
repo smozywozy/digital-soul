@@ -3,127 +3,119 @@
 import { useState } from "react"
 import { getSoulArchetype } from "@/lib/archetypes"
 import { getZodiacSign } from "@/lib/zodiac"
-import { FUSION_READINGS } from "@/lib/fusionTexts"
+import { getSoulFusionText } from "@/lib/fusionTexts"
 
 export default function Page() {
   const [birthDate, setBirthDate] = useState("")
-  const [result, setResult] = useState<any | null>(null)
+  const [revealed, setRevealed] = useState(false)
 
-  function handleReveal() {
-    if (!birthDate) return
-
-    const archetype = getSoulArchetype(birthDate)
-    const zodiac = getZodiacSign(birthDate)
-
-    const key = `${zodiac}-${archetype.name}`
-    const fusion =
-      FUSION_READINGS[key] ??
-      "Your soul carries a rare and undefined fusion energy."
-
-    setResult({ archetype, zodiac, fusion })
-  }
+  const archetype = birthDate ? getSoulArchetype(birthDate) : null
+  const zodiac = birthDate ? getZodiacSign(birthDate) : null
+  const fusion = birthDate && archetype
+    ? getSoulFusionText(birthDate, archetype.id)
+    : null
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, #1b1b2f 0%, #0b0b12 70%)",
-        color: "#ffffff",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: "Georgia, serif",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 460,
-          background: "rgba(255,255,255,0.05)",
-          borderRadius: 24,
-          padding: 32,
-          boxShadow: "0 0 40px rgba(0,0,0,0.4)",
-        }}
-      >
-        <h1
-          style={{
-            textAlign: "center",
-            letterSpacing: 1,
-            marginBottom: 24,
-          }}
-        >
+    <main style={{
+      minHeight: "100vh",
+      background: "radial-gradient(circle at top, #1a1a2e, #000)",
+      color: "#fff",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: "40px",
+      fontFamily: "serif"
+    }}>
+      <div style={{
+        maxWidth: "520px",
+        width: "100%",
+        textAlign: "center",
+        background: "rgba(255,255,255,0.05)",
+        borderRadius: "24px",
+        padding: "40px",
+        boxShadow: "0 0 60px rgba(138,43,226,0.35)"
+      }}>
+
+        <h1 style={{ fontSize: "36px", marginBottom: "10px" }}>
           Digital Soul
         </h1>
 
-        <input
-          type="date"
-          value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 14,
-            borderRadius: 14,
-            border: "none",
-            fontSize: 16,
-            marginBottom: 16,
-          }}
-        />
+        <p style={{ opacity: 0.7, marginBottom: "30px" }}>
+          Discover the archetype of your soul
+        </p>
 
-        <button
-          onClick={handleReveal}
-          style={{
-            width: "100%",
-            padding: 14,
-            borderRadius: 14,
-            border: "none",
-            fontSize: 16,
-            fontWeight: "bold",
-            background: "linear-gradient(90deg, #a78bfa, #f472b6)",
-            color: "#0b0b12",
-            cursor: "pointer",
-          }}
-        >
-          Reveal Your Soul
-        </button>
-
-        {result && (
-          <div style={{ marginTop: 36 }}>
-            {/* Archetype */}
-            <div style={{ marginBottom: 24 }}>
-              <h2 style={{ marginBottom: 6 }}>
-                {result.archetype.name}
-              </h2>
-              <p style={{ opacity: 0.85 }}>
-                {result.archetype.description}
-              </p>
-            </div>
-
-            {/* Zodiac */}
-            <div style={{ marginBottom: 24 }}>
-              <h3 style={{ marginBottom: 4 }}>Zodiac Sign</h3>
-              <p style={{ opacity: 0.85 }}>{result.zodiac}</p>
-            </div>
-
-            {/* Fusion */}
-            <div
+        {!revealed && (
+          <>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
               style={{
-                padding: 20,
-                borderRadius: 18,
-                background:
-                  "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
+                padding: "14px",
+                borderRadius: "12px",
+                border: "none",
+                width: "100%",
+                marginBottom: "20px",
+                fontSize: "16px"
+              }}
+            />
+
+            <button
+              onClick={() => setRevealed(true)}
+              style={{
+                padding: "14px 32px",
+                borderRadius: "999px",
+                border: "none",
+                background: "linear-gradient(90deg, #8a2be2, #00c6ff)",
+                color: "#fff",
+                fontSize: "16px",
+                cursor: "pointer",
+                boxShadow: "0 0 25px rgba(138,43,226,0.6)"
               }}
             >
-              <h3 style={{ marginBottom: 8 }}>
-                Soul Fusion Reading
-              </h3>
-              <p style={{ lineHeight: 1.6 }}>
-                {result.fusion}
-              </p>
+              Reveal Your Soul
+            </button>
+          </>
+        )}
+
+        {revealed && archetype && (
+          <div style={{ marginTop: "30px" }}>
+            <h2 style={{ fontSize: "28px" }}>{archetype.name}</h2>
+            <p style={{ fontStyle: "italic", opacity: 0.85 }}>
+              {archetype.tagline}
+            </p>
+
+            <div style={{
+              marginTop: "20px",
+              padding: "20px",
+              borderRadius: "16px",
+              background: "rgba(255,255,255,0.06)"
+            }}>
+              <h3>Zodiac Sign</h3>
+              <p>{zodiac}</p>
+
+              <h3 style={{ marginTop: "20px" }}>Soul Fusion Reading</h3>
+              <p style={{ opacity: 0.85 }}>{fusion}</p>
             </div>
+
+            <button
+              style={{
+                marginTop: "30px",
+                padding: "14px 32px",
+                borderRadius: "999px",
+                border: "none",
+                background: "linear-gradient(90deg, #ff8a00, #e52e71)",
+                color: "#fff",
+                fontSize: "16px",
+                cursor: "pointer",
+                boxShadow: "0 0 25px rgba(255,138,0,0.6)"
+              }}
+            >
+              Connect Wallet & Mint Soul NFT
+            </button>
           </div>
         )}
+
       </div>
     </main>
   )
