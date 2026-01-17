@@ -1,196 +1,130 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import {
-  WagmiProvider,
-  createConfig,
-  useAccount,
-  useConnect,
-  useDisconnect,
-  useWriteContract,
-} from 'wagmi';
-import { injected } from 'wagmi/connectors';
-import { base } from 'wagmi/chains';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from "react"
+import { getSoulArchetype } from "@/lib/archetypes"
+import { getZodiacSign } from "@/lib/zodiac"
+import { FUSION_READINGS } from "@/lib/fusionTexts"
 
-const CONTRACT_ADDRESS = '0x0e726e4B5d97f1D48B0dCAde6f47eB2b2c449007';
+export default function Page() {
+  const [birthDate, setBirthDate] = useState("")
+  const [result, setResult] = useState<any | null>(null)
 
-const CONTRACT_ABI = [
-  {
-    inputs: [
-      {
-        internalType: 'string',
-        name: 'tokenURI',
-        type: 'string',
-      },
-    ],
-    name: 'mintSoul',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-];
+  function handleReveal() {
+    if (!birthDate) return
 
-const config = createConfig({
-  chains: [base],
-  connectors: [injected()],
-});
+    const archetype = getSoulArchetype(birthDate)
+    const zodiac = getZodiacSign(birthDate)
 
-const queryClient = new QueryClient();
+    const key = `${zodiac}-${archetype.name}`
+    const fusion =
+      FUSION_READINGS[key] ??
+      "Your soul carries a rare and undefined fusion energy."
 
-function DigitalSoulApp() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect } = useDisconnect();
-  const { writeContract } = useWriteContract();
-
-  const [birthDate, setBirthDate] = useState('');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
-  const handleMint = async () => {
-    if (!birthDate) {
-      alert('Select your birth date');
-      return;
-    }
-
-    const metadata = {
-      name: 'Digital Soul',
-      description: 'Your onchain digital soul',
-      attributes: [
-        {
-          trait_type: 'Soul Archetype',
-          value: 'Ethereal Mind',
-        },
-        {
-          trait_type: 'Birth Date',
-          value: birthDate,
-        },
-      ],
-    };
-
-    const tokenURI =
-      'data:application/json,' +
-      encodeURIComponent(JSON.stringify(metadata));
-
-    try {
-      await writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'mintSoul',
-        args: [tokenURI],
-      });
-    } catch (e) {
-      console.error(e);
-      alert('Mint failed. Check console.');
-    }
-  };
+    setResult({ archetype, zodiac, fusion })
+  }
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0b0b0f',
-        color: 'white',
-        fontFamily: 'sans-serif',
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at top, #1b1b2f 0%, #0b0b12 70%)",
+        color: "#ffffff",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        fontFamily: "Georgia, serif",
+        padding: 24,
       }}
     >
       <div
         style={{
-          width: 380,
-          padding: 24,
-          borderRadius: 16,
-          background: 'rgba(255,255,255,0.05)',
-          boxShadow: '0 0 40px rgba(0,0,0,0.4)',
-          textAlign: 'center',
+          width: "100%",
+          maxWidth: 460,
+          background: "rgba(255,255,255,0.05)",
+          borderRadius: 24,
+          padding: 32,
+          boxShadow: "0 0 40px rgba(0,0,0,0.4)",
         }}
       >
-        <h1 style={{ fontSize: 28, marginBottom: 16 }}>Digital Soul</h1>
+        <h1
+          style={{
+            textAlign: "center",
+            letterSpacing: 1,
+            marginBottom: 24,
+          }}
+        >
+          Digital Soul
+        </h1>
 
-        {!isConnected ? (
-          <button
-            onClick={() => connect({ connector: injected() })}
-            style={{
-              width: '100%',
-              padding: 12,
-              borderRadius: 10,
-              background: '#4f46e5',
-              border: 'none',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Connect Wallet
-          </button>
-        ) : (
-          <>
-            <p style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>
-              {address}
-            </p>
+        <input
+          type="date"
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 14,
+            borderRadius: 14,
+            border: "none",
+            fontSize: 16,
+            marginBottom: 16,
+          }}
+        />
 
-            <input
-              type="date"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
+        <button
+          onClick={handleReveal}
+          style={{
+            width: "100%",
+            padding: 14,
+            borderRadius: 14,
+            border: "none",
+            fontSize: 16,
+            fontWeight: "bold",
+            background: "linear-gradient(90deg, #a78bfa, #f472b6)",
+            color: "#0b0b12",
+            cursor: "pointer",
+          }}
+        >
+          Reveal Your Soul
+        </button>
+
+        {result && (
+          <div style={{ marginTop: 36 }}>
+            {/* Archetype */}
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ marginBottom: 6 }}>
+                {result.archetype.name}
+              </h2>
+              <p style={{ opacity: 0.85 }}>
+                {result.archetype.description}
+              </p>
+            </div>
+
+            {/* Zodiac */}
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ marginBottom: 4 }}>Zodiac Sign</h3>
+              <p style={{ opacity: 0.85 }}>{result.zodiac}</p>
+            </div>
+
+            {/* Fusion */}
+            <div
               style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 8,
-                marginBottom: 12,
-              }}
-            />
-
-            <button
-              onClick={handleMint}
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 10,
-                background: '#22c55e',
-                border: 'none',
-                color: 'black',
-                cursor: 'pointer',
-                marginBottom: 8,
+                padding: 20,
+                borderRadius: 18,
+                background:
+                  "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
               }}
             >
-              Reveal & Mint
-            </button>
-
-            <button
-              onClick={() => disconnect()}
-              style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 10,
-                background: 'transparent',
-                border: '1px solid #555',
-                color: 'white',
-                cursor: 'pointer',
-              }}
-            >
-              Disconnect
-            </button>
-          </>
+              <h3 style={{ marginBottom: 8 }}>
+                Soul Fusion Reading
+              </h3>
+              <p style={{ lineHeight: 1.6 }}>
+                {result.fusion}
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </main>
-  );
-}
-
-export default function Page() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={config}>
-        <DigitalSoulApp />
-      </WagmiProvider>
-    </QueryClientProvider>
-  );
+  )
 }
